@@ -1,22 +1,20 @@
 import numpy as np
+from scipy.stats import zscore
+import pandas as pd
 
 
-def remove_outliers(df, col, min, max):
-    Q1 = df[col].quantile(min)
-    Q3 = df[col].quantile(max)
-    IQR = Q3 - Q1
+def remove_outliers(df, col, threshold):
+    z_scores = zscore(df[col])
 
-    lower_bound = Q1 - (1.5 * IQR)
-    upper_bound = Q3 + (1.5 * IQR)
+    outlier_mask = abs(z_scores) > threshold
 
-    df = df[(df[col] >= lower_bound) & (df[col] <= upper_bound)]
+    df = df[~outlier_mask]
     return df
 
 
 def price_per_square_meter_per_postal_code(df):
     copied_df = df.copy()
 
-    copied_df["SurfaceOfGood"].fillna(0, inplace=True)
     copied_df["LivingArea"].fillna(0, inplace=True)
 
     pivot_table = (
@@ -33,4 +31,18 @@ def price_per_square_meter_per_postal_code(df):
     )
 
     df = df.merge(pivot_table, on="PostalCode", how="left")
+    return df
+
+
+def add_year_of_construction(df):
+    current_year = 2023  # You can adjust this to the current year
+    df["AgeOfProperty"] = current_year - df["ConstructionYear"]
+    return df
+
+
+def add_price_category(df):
+    price_categories = ["Low", "Medium", "High"]
+    price_bins = [0, 200000, 500000, np.inf]
+    df["PriceCategory"] = pd.cut(df["Price"], bins=price_bins, labels=price_categories)
+
     return df

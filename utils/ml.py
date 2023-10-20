@@ -2,7 +2,6 @@ from sklearn.model_selection import train_test_split
 import pickle
 from sklearn.metrics import r2_score, mean_squared_error
 from catboost import CatBoostRegressor
-
 import optuna
 
 
@@ -11,7 +10,7 @@ def regressor(df):
     y = df["Price"].values
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.08, random_state=42
+        X, y, test_size=0.05, random_state=42
     )
 
     def train_and_evaluate_catboost(params):
@@ -24,8 +23,8 @@ def regressor(df):
 
     def objective(trial):
         params = {
-            "iterations": 1000,
-            "learning_rate": trial.suggest_float("learning_rate", 1e-3, 0.1, log=True),
+            "iterations": 2000,
+            "learning_rate": trial.suggest_float("learning_rate", 0.001, 0.3, log=True),
             "depth": trial.suggest_int("depth", 1, 10),
             "subsample": trial.suggest_float("subsample", 0.05, 1.0),
             "colsample_bylevel": trial.suggest_float("colsample_bylevel", 0.05, 1.0),
