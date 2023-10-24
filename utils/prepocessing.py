@@ -1,11 +1,7 @@
 import pandas as pd
-from utils.func import (
-    remove_outliers,
-    price_per_square_meter_per_postal_code,
-    add_year_of_construction,
-    add_price_category,
-)
 from pandas import CategoricalDtype
+
+from utils.func import add_year_of_construction, price_per_square_meter_per_postal_code
 
 
 def preprocessing(df):
@@ -57,28 +53,12 @@ def preprocessing(df):
     df["Heating"] = df["Heating"].astype(heating_cat).cat.codes
 
     df["SubtypeOfProperty"] = df["SubtypeOfProperty"].fillna("not known")
-    df["SubtypeOfProperty"] = df["SubtypeOfProperty"].astype("category").cat.codes
-
-    df["SurfaceOfGood"] = df["SurfaceOfGood"].fillna(df["SurfaceOfGood"].mean())
-
-    df = remove_outliers(df, "Price", 2)
+    one_hot_kit = pd.get_dummies(df["SubtypeOfProperty"], prefix="SubtypeOfProperty")
+    df = pd.concat([df, one_hot_kit], axis=1)
+    df = df.drop("SubtypeOfProperty", axis=1)
 
     df = price_per_square_meter_per_postal_code(df)
     df = add_year_of_construction(df)
-    df = add_price_category(df)
-
-    price_cat = CategoricalDtype(
-        categories=["Low", "Medium", "High"],
-        ordered=True,
-    )
-    df["PriceCategory"] = df["PriceCategory"].astype(price_cat).cat.codes
-
-    df.dropna(subset=["PricePerSquareMeter"], axis=0)
-
-    df = remove_outliers(df, "PricePerSquareMeter", 2)
-
-    df["SurfaceOfGood"] = df["SurfaceOfGood"].fillna(df["LivingArea"])
     df = df.drop(columns=["Url", "PropertyId"])
 
-    # df = df.dropna()
     return df

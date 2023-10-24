@@ -1,18 +1,11 @@
-from sklearn.model_selection import train_test_split
 import pickle
-from sklearn.metrics import r2_score, mean_squared_error
-from catboost import CatBoostRegressor
+
 import optuna
+from catboost import CatBoostRegressor
+from sklearn.metrics import mean_squared_error, r2_score
 
 
-def regressor(df):
-    X = df.drop(columns=["Price"])
-    y = df["Price"].values
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.05, random_state=42
-    )
-
+def regressor(X_train, X_test, y_train, y_test):
     def train_and_evaluate_catboost(params):
         model = CatBoostRegressor(**params, silent=True)
         model.fit(X_train, y_train)
@@ -25,26 +18,46 @@ def regressor(df):
         params = {
             "iterations": 2000,
             "learning_rate": trial.suggest_float("learning_rate", 0.001, 0.3, log=True),
-            "depth": trial.suggest_int("depth", 1, 10),
-            "subsample": trial.suggest_float("subsample", 0.05, 1.0),
+            "depth": trial.suggest_int("depth", 7, 10),
             "colsample_bylevel": trial.suggest_float("colsample_bylevel", 0.05, 1.0),
             "min_data_in_leaf": trial.suggest_int("min_data_in_leaf", 1, 100),
+            "boosting_type": trial.suggest_categorical(
+                "boosting_type", ["Ordered", "Plain"]
+            ),
+            "bootstrap_type": trial.suggest_categorical(
+                "bootstrap_type",
+                [
+                    # "Bayesian", "Bernoulli",
+                    "MVS"
+                ],
+            ),
         }
+
+        if params["bootstrap_type"] == "Bayesian":
+            params["bagging_temperature"] = trial.suggest_float(
+                "bagging_temperature", 0, 10
+            )
+        elif params["bootstrap_type"] == "Bernoulli":
+            params["subsample"] = trial.suggest_float("subsample", 0.1, 1)
 
         model, r2, mse = train_and_evaluate_catboost(params)
 
         if r2 > study.user_attrs.get("best_r2", -1):
-            with open("best_catboost_model.pkl", "wb") as model_file:
+            with open("model.pkl", "wb") as model_file:
                 pickle.dump(model, model_file)
             study.set_user_attr("best_r2", r2)
             study.set_user_attr("best_mse", mse)
 
-        return mse
+        return r2
 
-    study = optuna.create_study(direction="minimize")
+    study = optuna.create_study(direction="maximize")
     study.optimize(objective, n_trials=30)
 
     best_r2 = study.user_attrs.get("best_r2", -1)
     best_mse = study.user_attrs.get("best_mse", -1)
     print("Best R-squared:", best_r2)
     print("Best MSE:", best_mse)
+
+    optuna.visualization.plot_optimization_history(study).show()
+    optuna.visualization.plot_slice(study).show()
+    optuna.visualization.plot_param_importances(study).show()

@@ -1,6 +1,6 @@
 import numpy as np
-from scipy.stats import zscore
 import pandas as pd
+from scipy.stats import zscore
 
 
 def remove_outliers(df, col, threshold):
@@ -15,13 +15,11 @@ def remove_outliers(df, col, threshold):
 def price_per_square_meter_per_postal_code(df):
     copied_df = df.copy()
 
-    copied_df["LivingArea"].fillna(0, inplace=True)
+    copied_df["SurfaceOfGood"].fillna(df["LivingArea"], inplace=True)
 
     pivot_table = (
-        copied_df.groupby("PostalCode")
-        .apply(
-            lambda x: x["Price"].mean() / (x["SurfaceOfGood"] + x["LivingArea"]).mean()
-        )
+        copied_df.groupby(["PostalCode"])
+        .apply(lambda x: x["Price"].mean() / x["SurfaceOfGood"].mean())
         .reset_index()
     )
     pivot_table.columns = ["PostalCode", "PricePerSquareMeter"]
@@ -30,7 +28,7 @@ def price_per_square_meter_per_postal_code(df):
         np.inf, np.nan
     )
 
-    df = df.merge(pivot_table, on="PostalCode", how="left")
+    df = df.merge(pivot_table, on=["PostalCode"], how="left")
     return df
 
 
