@@ -36,11 +36,3 @@ def add_year_of_construction(df):
     current_year = 2023  # You can adjust this to the current year
     df["AgeOfProperty"] = current_year - df["ConstructionYear"]
     return df
-
-
-def add_price_category(df):
-    price_categories = ["Low", "Medium", "High"]
-    price_bins = [0, 200000, 500000, np.inf]
-    df["PriceCategory"] = pd.cut(df["Price"], bins=price_bins, labels=price_categories)
-
-    return df

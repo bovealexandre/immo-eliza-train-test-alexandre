@@ -4,23 +4,28 @@ import pickle
 import sys
 
 import pandas as pd
+
+# from sklearn.ensemble import RandomForestRegressor
 from catboost import CatBoostRegressor
 from sklearn.metrics import mean_absolute_error
 
-from utils.prep import test_cleaning
+from utils.prep import training_cleaning
 
 if __name__ == "__main__":
     df = pd.read_json(sys.argv[1])
     print(df.shape)
     print(df.head())
 
-    df_encoded = test_cleaning(df)
+    df_encoded = training_cleaning(df)
 
     X = df_encoded.drop("Price", axis=1)
-    y = df_encoded["Price"].values
+    y = df_encoded["Price"]
 
     print(X.shape, y.shape)
 
     model = pickle.load(open("model.pkl", "rb"))
-    scores = {"r2": model.score(X, y), "mse": mean_absolute_error(y, model.predict(X))}
+    scores = {
+        "r2": model.score(X, y),
+        "mse": mean_absolute_error(y, model.predict(X)),
+    }
     print(scores)

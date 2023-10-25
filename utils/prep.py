@@ -53,8 +53,6 @@ def category_kitchen(df):
     """
     kitchen_type = pd.CategoricalDtype(
         categories=[
-            "not installed",
-            "usa not installed",
             "installed",
             "semi equipped",
             "usa installed",
@@ -147,11 +145,6 @@ def training_cleaning(df):
     """
 
     df.drop_duplicates()
-    df.dropna(subset="LivingArea", inplace=True)
-    df.dropna(subset="Price", inplace=True)
-
-    # Keep only postal codes with at least 5 occurrences
-    df = drop_less_5(df, "PostalCode")
 
     # Encode 'SubtypeOfProperty' and 'Heating' as categorical variables
     df["SubtypeOfProperty"].fillna(value="not_known", inplace=True)
@@ -172,12 +165,12 @@ def training_cleaning(df):
     apart = df[df["TypeOfProperty"] != 1]
     df["SurfaceOfGood"].fillna(value=apart["LivingArea"])
 
-    df = drop_outliers_iqr(df, "Price")
-
     df = new_features(df)
 
     # Drop unnecessary columns
-    df.drop(["Url", "PropertyId", "index"], axis=1, inplace=True)
+    df.drop(["Url", "PropertyId", "LivingArea_mean/PostalCode"], axis=1, inplace=True)
+
+    df = df.fillna(-1)
 
     print("Preprocessing Done")
     print(df.shape)
